@@ -99,7 +99,7 @@ def get_current_user(token: str = None) -> int:
     return verify_token(token)
 
 # Auth endpoints
-@app.post("/api/auth/login", response_model=AuthResponse)
+@app.post("/auth/login", response_model=AuthResponse)
 async def login(request: LoginRequest):
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=RealDictCursor)
@@ -121,7 +121,7 @@ async def login(request: LoginRequest):
         cur.close()
         conn.close()
 
-@app.post("/api/auth/register", response_model=AuthResponse)
+@app.post("/auth/register", response_model=AuthResponse)
 async def register(request: LoginRequest):
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=RealDictCursor)
@@ -150,7 +150,7 @@ async def register(request: LoginRequest):
         conn.close()
 
 # File endpoints
-@app.post("/api/files/upload")
+@app.post("/files/upload")
 async def upload_file(
     file: UploadFile = File(...),
     description: str = Form(""),
@@ -199,26 +199,46 @@ async def upload_file(
         cur.close()
         conn.close()
 
-@app.get("/api/files")
-async def list_files(token: str):
+@app.get("/files/list")
+async def list_files(search: str = "", filter: str = "all", token: str = None):
     user_id = get_current_user(token)
     
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=RealDictCursor)
     
     try:
-        cur.execute(
-            """SELECT id, original_filename, file_type, file_size, description, tags, created_at
-               FROM files WHERE user_id = %s ORDER BY created_at DESC""",
-            (user_id,)
-        )
+        # Build query based on filter
+        query = """SELECT id, original_filename, file_type, file_size, description, tags, created_at, file_key
+                   FROM files WHERE user_id = %s"""
+        params = [user_id]
+        
+        # Apply search filter
+        if search:
+            query += """ AND (original_filename ILIKE %s OR tags ILIKE %s OR description ILIKE %s)"""
+            search_param = f"%{search}%"
+            params.extend([search_param, search_param, search_param])
+        
+        # Apply file type filter
+        if filter == "images":
+            query += """ AND file_type LIKE %s"""
+            params.append("image/%")
+        elif filter == "videos":
+            query += """ AND file_type LIKE %s"""
+            params.append("video/%")
+        elif filter == "documents":
+            query += """ AND file_type NOT LIKE %s AND file_type NOT LIKE %s"""
+            params.extend(["image/%", "video/%"])
+        
+        query += """ ORDER BY created_at DESC"""
+        
+        cur.execute(query, tuple(params))
         files = cur.fetchall()
         return {"files": files}
     finally:
         cur.close()
         conn.close()
 
-@app.get("/api/files/{file_id}/download")
+@app.get("/files/{file_id}/download")
 async def download_file(file_id: int, token: str):
     user_id = get_current_user(token)
     
@@ -247,7 +267,7 @@ async def download_file(file_id: int, token: str):
         cur.close()
         conn.close()
 
-@app.delete("/api/files/{file_id}")
+@app.delete("/files/{file_id}")
 async def delete_file(file_id: int, token: str):
     user_id = get_current_user(token)
     
@@ -279,7 +299,36 @@ async def delete_file(file_id: int, token: str):
         cur.close()
         conn.close()
 
-@app.get("/api/files/search")
+@app.get("/files/{file_id}/preview")
+async def preview_file(file_id: int, token: str = None):
+    user_id = get_current_user(token)
+    
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    
+    try:
+        cur.execute(
+            "SELECT file_key, file_type FROM files WHERE id = %s AND user_id = %s",
+            (file_id, user_id)
+        )
+        file_record = cur.fetchone()
+        
+        if not file_record:
+            raise HTTPException(status_code=404, detail="File not found")
+        
+        # Generate presigned URL for preview
+        presigned_url = s3_client.generate_presigned_url(
+            "get_object",
+            Params={"Bucket": AWS_S3_BUCKET, "Key": file_record["file_key"]},
+            ExpiresIn=3600,
+        )
+        
+        return {"preview_url": presigned_url}
+    finally:
+        cur.close()
+        conn.close()
+
+@app.get("/files/search")
 async def search_files(q: str, token: str):
     user_id = get_current_user(token)
     
@@ -298,6 +347,18 @@ async def search_files(q: str, token: str):
     finally:
         cur.close()
         conn.close()
+
+@app.get("/auth/me")
+async def get_current_user_info(token: str = None):
+    try:
+        user_id = get_current_user(token)
+        return {"user_id": user_id}
+    except:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+@app.post("/auth/logout")
+async def logout():
+    return {"message": "Logged out successfully"}
 
 @app.get("/health")
 async def health_check():
