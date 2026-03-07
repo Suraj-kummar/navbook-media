@@ -36,7 +36,12 @@ export default function MediaViewer({
         try {
           const apiUrl = process.env.NEXT_PUBLIC_API_URL;
           const response = await fetch(
-            `${apiUrl}/files/${file.id}/download?token=${encodeURIComponent(token)}`
+            `${apiUrl}/files/${file.id}/download`,
+            {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+              },
+            }
           );
           if (response.ok) {
             const blob = await response.blob();

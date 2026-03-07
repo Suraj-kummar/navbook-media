@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import MediaViewer from '@/components/media-viewer';
 import { Button } from '@/components/ui/button';
@@ -22,10 +22,35 @@ interface FileCardProps {
 export default function FileCard({ file, onDelete }: FileCardProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showViewer, setShowViewer] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const { token } = useAuth();
 
   const isImage = file.file_type.startsWith('image/');
   const isVideo = file.file_type.startsWith('video/');
+
+  // Load image preview with authentication
+  useEffect(() => {
+    if (isImage && token) {
+      const loadPreview = async () => {
+        try {
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+          const response = await fetch(`${apiUrl}/files/${file.id}/preview`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            setPreviewUrl(data.url);
+          }
+        } catch (err) {
+          console.error('Failed to load preview:', err);
+        }
+      };
+      loadPreview();
+    }
+  }, [isImage, file.id, token]);
 
   const handleDelete = async () => {
     if (!confirm('Are you sure you want to delete this file?')) return;
@@ -33,8 +58,11 @@ export default function FileCard({ file, onDelete }: FileCardProps) {
     setIsDeleting(true);
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-      const response = await fetch(`${apiUrl}/files/${file.id}?token=${encodeURIComponent(token || '')}`, {
+      const response = await fetch(`${apiUrl}/files/${file.id}`, {
         method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
       });
 
       if (!response.ok) {
@@ -53,7 +81,11 @@ export default function FileCard({ file, onDelete }: FileCardProps) {
   const handleDownload = async () => {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-      const response = await fetch(`${apiUrl}/files/${file.id}/download?token=${encodeURIComponent(token || '')}`);
+      const response = await fetch(`${apiUrl}/files/${file.id}/download`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
 
       if (!response.ok) {
         throw new Error('Failed to download file');
@@ -89,15 +121,19 @@ export default function FileCard({ file, onDelete }: FileCardProps) {
     <div className="bg-card border border-border rounded-lg overflow-hidden hover:shadow-md transition flex flex-col h-full">
       {/* Preview Area */}
       <div className="h-40 bg-muted flex items-center justify-center overflow-hidden cursor-pointer relative group">
-        {isImage ? (
+        {isImage && previewUrl ? (
           <img
-            src={`${process.env.NEXT_PUBLIC_API_URL}/files/${file.id}/preview?token=${encodeURIComponent(token || '')}`}
+            src={previewUrl}
             alt={file.original_filename}
             className="w-full h-full object-cover"
             onError={(e) => {
               (e.target as HTMLImageElement).style.display = 'none';
             }}
           />
+        ) : isImage ? (
+          <div className="text-center">
+            <span className="text-4xl">🖼️</span>
+          </div>
         ) : isVideo ? (
           <div className="text-center">
             <span className="text-4xl">🎬</span>

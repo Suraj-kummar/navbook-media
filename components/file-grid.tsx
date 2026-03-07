@@ -43,8 +43,18 @@ export default function FileGrid({
       setError(null);
       try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+        const params = new URLSearchParams({
+          search: searchQuery,
+          file_type: fileFilter,
+        });
+        
         const response = await fetch(
-          `${apiUrl}/files/list?search=${encodeURIComponent(searchQuery)}&filter=${fileFilter}&token=${encodeURIComponent(token)}`
+          `${apiUrl}/files/list?${params}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          }
         );
 
         if (!response.ok) {
@@ -52,7 +62,7 @@ export default function FileGrid({
         }
 
         const data = await response.json();
-        setFiles(data.files || []);
+        setFiles(data || []);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load files');
         setFiles([]);
@@ -63,6 +73,11 @@ export default function FileGrid({
 
     fetchFiles();
   }, [searchQuery, fileFilter, refreshTrigger, token]);
+
+  const handleFileDeleted = () => {
+    // Refresh the file list
+    setFiles(files.filter(f => f.id !== f.id));
+  };
 
   if (loading) {
     return (
@@ -93,7 +108,14 @@ export default function FileGrid({
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       {files.map((file) => (
-        <FileCard key={file.id} file={file} onDelete={() => {}} />
+        <FileCard 
+          key={file.id} 
+          file={file} 
+          onDelete={() => {
+            // Remove file from local state
+            setFiles(files.filter(f => f.id !== file.id));
+          }} 
+        />
       ))}
     </div>
   );

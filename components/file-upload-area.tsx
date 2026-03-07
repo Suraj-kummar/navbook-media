@@ -61,11 +61,13 @@ export default function FileUploadArea({ onFileUploaded }: FileUploadAreaProps) 
         formData.append('file', file);
         formData.append('description', description);
         formData.append('tags', tags);
-        formData.append('token', token);
 
         const apiUrl = process.env.NEXT_PUBLIC_API_URL;
         const response = await fetch(`${apiUrl}/files/upload`, {
           method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
           body: formData,
         });
 
