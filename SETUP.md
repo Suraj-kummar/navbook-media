@@ -7,7 +7,7 @@ Navbook is a secure private media vault with a Next.js frontend and FastAPI back
 - **Frontend**: Next.js 16 with React 19 (TypeScript)
 - **Backend**: FastAPI with Python
 - **Database**: PostgreSQL (Neon)
-- **Storage**: AWS S3
+- **Storage**: Vercel Blob (FREE!)
 - **Authentication**: JWT-based with bcrypt password hashing
 
 ## Prerequisites
@@ -15,7 +15,7 @@ Navbook is a secure private media vault with a Next.js frontend and FastAPI back
 - Node.js 18+
 - Python 3.10+
 - PostgreSQL database (via Neon)
-- AWS S3 bucket and credentials
+- Vercel account with Blob integration enabled
 
 ## Quick Start
 
@@ -46,10 +46,7 @@ cp .env.example .env
 # Required environment variables:
 # DATABASE_URL=postgresql://user:password@host/dbname
 # JWT_SECRET=your-secret-key-change-in-production
-# AWS_ACCESS_KEY_ID=your-aws-key
-# AWS_SECRET_ACCESS_KEY=your-aws-secret
-# AWS_S3_BUCKET=your-bucket-name
-# AWS_REGION=us-east-1
+# BLOB_READ_WRITE_TOKEN=your-vercel-blob-token (from Vercel dashboard)
 
 # Run the server
 python -m uvicorn app:app --reload --port 8000
@@ -92,11 +89,26 @@ Then login with these credentials in the frontend.
 
 - **Secure Authentication**: JWT-based login with bcrypt password hashing
 - **Private Media Vault**: Upload images, videos, and documents
-- **Encrypted Storage**: Files stored in private AWS S3 bucket
+- **Free Storage**: Files stored in Vercel Blob (100GB free tier)
 - **Search & Filter**: Find files by name, tags, or description
 - **Media Viewer**: Preview images and videos inline
 - **File Management**: Delete files with confirmation
 - **Responsive Design**: Works on desktop and mobile
+
+## Storage - Vercel Blob
+
+Vercel Blob is completely free and integrates seamlessly with your Vercel deployment:
+
+- **Free Tier**: 100GB storage included
+- **No AWS Setup**: No credentials or complex configuration needed
+- **Automatic Scaling**: Scales with your application
+- **CDN Included**: Files delivered through Vercel's global CDN
+
+To get your Blob token:
+1. Go to [Vercel Dashboard](https://vercel.com/dashboard)
+2. Navigate to Settings > Integrations > Blob
+3. Copy your `BLOB_READ_WRITE_TOKEN`
+4. Add it to your backend `.env` file
 
 ## Project Structure
 

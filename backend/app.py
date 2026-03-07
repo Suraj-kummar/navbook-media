@@ -8,7 +8,7 @@ import jwt
 import bcrypt
 import psycopg2
 from psycopg2.extras import RealDictCursor
-import boto3
+import httpx
 from dotenv import load_dotenv
 from typing import Optional
 
@@ -17,17 +17,14 @@ load_dotenv()
 # Environment variables
 DATABASE_URL = os.getenv("DATABASE_URL")
 JWT_SECRET = os.getenv("JWT_SECRET", "your-secret-key-change-in-production")
-AWS_ACCESS_KEY = os.getenv("AWS_ACCESS_KEY_ID")
-AWS_SECRET_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
-AWS_S3_BUCKET = os.getenv("AWS_S3_BUCKET")
-AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
+BLOB_READ_WRITE_TOKEN = os.getenv("BLOB_READ_WRITE_TOKEN")
 
 app = FastAPI(title="Navbook API")
 
 # CORS Configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:3001"],
+    allow_origins=["http://localhost:3000", "http://localhost:3001", "http://localhost:3002"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -38,13 +35,27 @@ def get_db_connection():
     conn = psycopg2.connect(DATABASE_URL)
     return conn
 
-# S3 client
-s3_client = boto3.client(
-    "s3",
-    aws_access_key_id=AWS_ACCESS_KEY,
-    aws_secret_access_key=AWS_SECRET_KEY,
-    region_name=AWS_REGION,
-)
+# Vercel Blob API client
+async def upload_to_blob(file_content: bytes, file_name: str) -> dict:
+    """Upload file to Vercel Blob"""
+    async with httpx.AsyncClient() as client:
+        headers = {"Authorization": f"Bearer {BLOB_READ_WRITE_TOKEN}"}
+        files = {"file": (file_name, file_content)}
+        response = await client.post(
+            "https://blob.vercel-storage.com/upload",
+            headers=headers,
+            files=files,
+        )
+        if response.status_code != 200:
+            raise HTTPException(status_code=500, detail="Blob upload failed")
+        return response.json()
+
+async def delete_from_blob(blob_url: str) -> bool:
+    """Delete file from Vercel Blob"""
+    async with httpx.AsyncClient() as client:
+        headers = {"Authorization": f"Bearer {BLOB_READ_WRITE_TOKEN}"}
+        response = await client.delete(blob_url, headers=headers)
+        return response.status_code == 200
 
 # Pydantic models
 class LoginRequest(BaseModel):
@@ -167,17 +178,15 @@ async def upload_file(
     if file_size > 100 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="File too large")
     
-    # Generate S3 key
-    file_key = f"{user_id}/{datetime.utcnow().timestamp()}_{file.filename}"
+    # Generate unique file name for Blob
+    unique_filename = f"{user_id}/{datetime.utcnow().timestamp()}_{file.filename}"
     
-    # Upload to S3
+    # Upload to Vercel Blob
     try:
-        s3_client.put_object(
-            Bucket=AWS_S3_BUCKET,
-            Key=file_key,
-            Body=content,
-            ContentType=file.content_type,
-        )
+        blob_response = await upload_to_blob(content, unique_filename)
+        blob_url = blob_response.get("url")
+        if not blob_url:
+            raise HTTPException(status_code=500, detail="Failed to get blob URL")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
     
@@ -189,7 +198,7 @@ async def upload_file(
         cur.execute(
             """INSERT INTO files (user_id, original_filename, file_key, file_type, file_size, description, tags)
                VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id""",
-            (user_id, file.filename, file_key, file.content_type, file_size, description, tags)
+            (user_id, file.filename, blob_url, file.content_type, file_size, description, tags)
         )
         file_id = cur.fetchone()[0]
         conn.commit()
@@ -255,14 +264,8 @@ async def download_file(file_id: int, token: str):
         if not file_record:
             raise HTTPException(status_code=404, detail="File not found")
         
-        # Generate presigned URL
-        presigned_url = s3_client.generate_presigned_url(
-            "get_object",
-            Params={"Bucket": AWS_S3_BUCKET, "Key": file_record["file_key"]},
-            ExpiresIn=3600,
-        )
-        
-        return {"download_url": presigned_url}
+        # file_key is already the Blob URL, return it directly
+        return {"download_url": file_record["file_key"]}
     finally:
         cur.close()
         conn.close()
@@ -284,11 +287,12 @@ async def delete_file(file_id: int, token: str):
         if not file_record:
             raise HTTPException(status_code=404, detail="File not found")
         
-        # Delete from S3
+        # Delete from Vercel Blob (file_key is the blob URL)
         try:
-            s3_client.delete_object(Bucket=AWS_S3_BUCKET, Key=file_record["file_key"])
+            await delete_from_blob(file_record["file_key"])
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Delete failed: {str(e)}")
+            # Continue with database deletion even if blob deletion fails
+            print(f"Warning: Failed to delete blob: {str(e)}")
         
         # Delete from database
         cur.execute("DELETE FROM files WHERE id = %s", (file_id,))
@@ -316,14 +320,8 @@ async def preview_file(file_id: int, token: str = None):
         if not file_record:
             raise HTTPException(status_code=404, detail="File not found")
         
-        # Generate presigned URL for preview
-        presigned_url = s3_client.generate_presigned_url(
-            "get_object",
-            Params={"Bucket": AWS_S3_BUCKET, "Key": file_record["file_key"]},
-            ExpiresIn=3600,
-        )
-        
-        return {"preview_url": presigned_url}
+        # file_key is already the Blob URL, return it directly for preview
+        return {"preview_url": file_record["file_key"]}
     finally:
         cur.close()
         conn.close()
