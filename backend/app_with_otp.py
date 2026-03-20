@@ -2,7 +2,7 @@ import os
 import random
 import string
 from fastapi import FastAPI, HTTPException, Depends, UploadFile, File, Form, Header
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.cors import CORSMiddleware 
 from pydantic import BaseModel, EmailStr
 from datetime import datetime, timedelta
 import jwt
