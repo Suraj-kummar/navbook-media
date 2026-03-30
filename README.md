@@ -878,7 +878,7 @@ SOFTWARE.
 
 - **Documentation**: [SETUP.md](SETUP.md) | [TEST_REPORT.md](TEST_REPORT.md)
 - **Issues**: [GitHub Issues](https://github.com/yourusername/navbook-media/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/navbook-media/discussions)
+- **Discussions**: [GitHub Discussions](https://github.com/suraj-kummar/navbook-media/discussions)
 
 ---
 
