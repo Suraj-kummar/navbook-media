@@ -89,7 +89,7 @@ Navbook is a full-stack private media vault application that provides secure fil
 - Automatic file cleanup on deletion
 
 ---
-
+ 
 ## 🛠 Tech Stack
 
 ### Frontend
