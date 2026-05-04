@@ -1,60 +1,140 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import FileUploadArea from '@/components/file-upload-area';
 import FileGrid from '@/components/file-grid';
-import { Button } from '@/components/ui/button';
+import StorageStats from '@/components/storage-stats';
+import BulkActionBar from '@/components/bulk-action-bar';
 import { Input } from '@/components/ui/input';
 
-export default function DashboardPage() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [fileFilter, setFileFilter] = useState<'all' | 'images' | 'videos' | 'documents'>('all');
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
+type Tab = 'all' | 'favorites' | 'trash';
+type FileFilter = 'all' | 'images' | 'videos' | 'documents';
 
-  const handleFileUploaded = () => {
-    setRefreshTrigger((prev) => prev + 1);
+export default function DashboardPage() {
+  const [activeTab, setActiveTab] = useState<Tab>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [fileFilter, setFileFilter] = useState<FileFilter>('all');
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [selectable, setSelectable] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+
+  const refresh = useCallback(() => setRefreshTrigger((n) => n + 1), []);
+
+  const handleToggleSelect = useCallback((id: number) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  }, []);
+
+  const handleClearSelection = () => {
+    setSelectedIds([]);
+    setSelectable(false);
   };
 
+  const handleTabChange = (tab: Tab) => {
+    setActiveTab(tab);
+    setSelectedIds([]);
+    setSelectable(false);
+    setSearchQuery('');
+    setFileFilter('all');
+  };
+
+  const tabs: { key: Tab; label: string; icon: string }[] = [
+    { key: 'all', label: 'All Files', icon: '📂' },
+    { key: 'favorites', label: 'Starred', icon: '⭐' },
+    { key: 'trash', label: 'Trash', icon: '🗑️' },
+  ];
+
+  const isTrashView = activeTab === 'trash';
+  const isFavoritesView = activeTab === 'favorites';
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="space-y-2">
-        <h1 className="text-4xl font-bold text-foreground">Media Vault</h1>
-        <p className="text-muted-foreground">Securely store and manage your private media files</p>
+    <div className="dashboard-root">
+      {/* Page title */}
+      <div className="dashboard-title-block">
+        <h1 className="dashboard-title">Media Vault</h1>
+        <p className="dashboard-subtitle">Your private, secure file storage</p>
       </div>
 
-      {/* Upload Area */}
-      <FileUploadArea onFileUploaded={handleFileUploaded} />
+      {/* Storage Stats */}
+      <StorageStats refreshTrigger={refreshTrigger} />
 
-      {/* Filters and Search */}
-      <div className="space-y-4">
-        <div className="flex flex-col md:flex-row gap-4">
+      {/* Upload (only on All Files tab) */}
+      {!isTrashView && !isFavoritesView && (
+        <FileUploadArea onFileUploaded={refresh} />
+      )}
+
+      {/* Tabs */}
+      <div className="dashboard-tabs">
+        {tabs.map((tab) => (
+          <button
+            key={tab.key}
+            className={`dashboard-tab ${activeTab === tab.key ? 'dashboard-tab--active' : ''}`}
+            onClick={() => handleTabChange(tab.key)}
+          >
+            <span>{tab.icon}</span>
+            <span>{tab.label}</span>
+          </button>
+        ))}
+
+        {/* Bulk-select toggle (only in All Files tab) */}
+        {activeTab === 'all' && (
+          <button
+            className={`dashboard-tab dashboard-tab--select ${selectable ? 'dashboard-tab--active' : ''}`}
+            onClick={() => {
+              setSelectable((s) => !s);
+              setSelectedIds([]);
+            }}
+            title="Toggle bulk select"
+          >
+            <span>☑️</span>
+            <span>Select</span>
+          </button>
+        )}
+      </div>
+
+      {/* Search & Type Filter (hidden in trash) */}
+      {!isTrashView && (
+        <div className="dashboard-filters">
           <Input
-            placeholder="Search files by name, tags, or description..."
+            id="search-files"
+            placeholder="Search by name, tags, description…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="flex-1"
+            className="dashboard-search"
           />
-          <div className="flex gap-2 flex-wrap">
-            {(['all', 'images', 'videos', 'documents'] as const).map((filter) => (
-              <Button
-                key={filter}
-                variant={fileFilter === filter ? 'default' : 'outline'}
-                onClick={() => setFileFilter(filter)}
-                className="capitalize"
+          <div className="filter-chips">
+            {(['all', 'images', 'videos', 'documents'] as FileFilter[]).map((f) => (
+              <button
+                key={f}
+                className={`filter-chip ${fileFilter === f ? 'filter-chip--active' : ''}`}
+                onClick={() => setFileFilter(f)}
               >
-                {filter}
-              </Button>
+                {f === 'all' ? '🗂 All' : f === 'images' ? '🖼️ Images' : f === 'videos' ? '🎬 Videos' : '📄 Docs'}
+              </button>
             ))}
           </div>
         </div>
-      </div>
+      )}
+
+      {/* Bulk action bar */}
+      <BulkActionBar
+        selectedIds={selectedIds}
+        onClearSelection={handleClearSelection}
+        onBulkDeleted={refresh}
+      />
 
       {/* File Grid */}
       <FileGrid
         searchQuery={searchQuery}
         fileFilter={fileFilter}
         refreshTrigger={refreshTrigger}
+        showTrash={isTrashView}
+        favoritesOnly={isFavoritesView}
+        selectable={selectable}
+        selectedIds={selectedIds}
+        onToggleSelect={handleToggleSelect}
+        onRefresh={refresh}
       />
     </div>
   );
