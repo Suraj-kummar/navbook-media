@@ -9,3 +9,4 @@
 [9] [2026-05-28 21:41:16] style: polish media viewer modal
 [10] [2026-05-28 21:41:16] refactor: extract auth helper functions
 [11] [2026-05-28 21:41:16] feat: add keyboard shortcut support
+[12] [2026-05-28 21:41:16] fix: correct file size formatting
