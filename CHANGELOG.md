@@ -17,3 +17,4 @@
 [17] [2026-05-28 21:41:17] style: refine typography scale
 [18] [2026-05-28 21:41:17] refactor: move utils to lib folder
 [19] [2026-05-28 21:41:18] feat: add tooltip to action buttons
+[20] [2026-05-28 21:41:18] fix: resolve supabase session timeout
