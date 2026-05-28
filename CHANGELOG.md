@@ -63,3 +63,4 @@
 [63] [2026-05-28 21:41:25] feat: share link expiry options
 [64] [2026-05-28 21:41:25] fix: storage quota calculation
 [65] [2026-05-28 21:41:26] style: update color palette tokens
+[66] [2026-05-28 21:41:26] refactor: simplify middleware logic
