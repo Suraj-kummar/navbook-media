@@ -43,3 +43,4 @@
 [43] [2026-05-28 21:41:22] feat: file metadata side panel
 [44] [2026-05-28 21:41:22] fix: handle deleted user session
 [45] [2026-05-28 21:41:22] style: add focus ring to inputs
+[46] [2026-05-28 21:41:22] refactor: unify toast notifications
