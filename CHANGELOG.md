@@ -57,3 +57,4 @@
 [57] [2026-05-28 21:41:24] style: vibrant upload zone border
 [58] [2026-05-28 21:41:24] refactor: consolidate route handlers
 [59] [2026-05-28 21:41:24] feat: file rename inline edit
+[60] [2026-05-28 21:41:25] fix: broken image fallback
