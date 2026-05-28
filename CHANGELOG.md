@@ -58,3 +58,4 @@
 [58] [2026-05-28 21:41:24] refactor: consolidate route handlers
 [59] [2026-05-28 21:41:24] feat: file rename inline edit
 [60] [2026-05-28 21:41:25] fix: broken image fallback
+[61] [2026-05-28 21:41:25] style: smooth page transitions
