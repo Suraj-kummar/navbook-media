@@ -12,3 +12,4 @@
 [12] [2026-05-28 21:41:16] fix: correct file size formatting
 [13] [2026-05-28 21:41:17] style: improve dark mode contrast
 [14] [2026-05-28 21:41:17] refactor: organize component imports
+[15] [2026-05-28 21:41:17] feat: enhance bulk action feedback
