@@ -6,3 +6,4 @@
 [6] [2026-05-28 21:41:15] refactor: simplify file upload logic
 [7] [2026-05-28 21:41:16] feat: improve storage stats display
 [8] [2026-05-28 21:41:16] fix: resolve OTP input focus bug
+[9] [2026-05-28 21:41:16] style: polish media viewer modal
