@@ -54,3 +54,4 @@
 [54] [2026-05-28 21:41:24] refactor: lazy load heavy components
 [55] [2026-05-28 21:41:24] feat: folder creation support
 [56] [2026-05-28 21:41:24] fix: auth redirect loop patch
+[57] [2026-05-28 21:41:24] style: vibrant upload zone border
