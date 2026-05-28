@@ -41,3 +41,4 @@
 [41] [2026-05-28 21:41:21] style: better error message styling
 [42] [2026-05-28 21:41:22] refactor: type safety improvements
 [43] [2026-05-28 21:41:22] feat: file metadata side panel
+[44] [2026-05-28 21:41:22] fix: handle deleted user session
