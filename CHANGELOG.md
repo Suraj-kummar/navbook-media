@@ -76,3 +76,4 @@
 [76] [2026-05-28 21:41:27] fix: patch CORS in backend
 [77] [2026-05-28 21:41:28] style: active nav link indicator
 [78] [2026-05-28 21:41:28] refactor: split large components
+[79] [2026-05-28 21:41:28] feat: image crop before upload
