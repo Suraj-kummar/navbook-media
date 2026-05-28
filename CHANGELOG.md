@@ -61,3 +61,4 @@
 [61] [2026-05-28 21:41:25] style: smooth page transitions
 [62] [2026-05-28 21:41:25] refactor: improve error boundaries
 [63] [2026-05-28 21:41:25] feat: share link expiry options
+[64] [2026-05-28 21:41:25] fix: storage quota calculation
