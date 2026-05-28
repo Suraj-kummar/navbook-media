@@ -36,3 +36,4 @@
 [36] [2026-05-28 21:41:21] fix: OTP resend cooldown timer
 [37] [2026-05-28 21:41:21] style: improve mobile nav layout
 [38] [2026-05-28 21:41:21] refactor: clean up unused state vars
+[39] [2026-05-28 21:41:21] feat: starred files quick filter
