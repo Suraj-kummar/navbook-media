@@ -82,8 +82,36 @@ def create_access_token(user_id: int, expires_delta: Optional[timedelta] = None)
 
 def verify_token(token: str) -> int:
     try:
-        payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
-        user_id: int = payload.get("user_id")
+        # Decode token. Handle standard Supabase audience if present, fallback if not
+        try:
+            payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"], audience="authenticated")
+        except jwt.InvalidTokenError:
+            payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+        
+        # Check if it is a Supabase JWT (contains 'sub' UUID and is not a legacy token)
+        if "sub" in payload and "user_id" not in payload:
+            supabase_id = payload["sub"]
+            email = payload.get("email", "supabase_user")
+            
+            # Lookup or create this user in-memory
+            # users_db is {username: {id, password_hash, created_at, supabase_id}}
+            global user_id_counter
+            for username, udata in users_db.items():
+                if udata.get("supabase_id") == supabase_id:
+                    return udata["id"]
+            
+            # Create a new local user in-memory
+            user_id = user_id_counter
+            user_id_counter += 1
+            users_db[email] = {
+                "id": user_id,
+                "password_hash": "",
+                "created_at": datetime.utcnow().isoformat(),
+                "supabase_id": supabase_id
+            }
+            return user_id
+
+        user_id = payload.get("user_id")
         if user_id is None:
             raise HTTPException(status_code=401, detail="Invalid token")
         return user_id

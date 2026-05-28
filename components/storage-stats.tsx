@@ -60,7 +60,8 @@ interface StorageStatsProps {
 export default function StorageStats({ refreshTrigger }: StorageStatsProps) {
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
-  const { token } = useAuth();
+  const { session } = useAuth();
+  const token = session?.access_token;
 
   useEffect(() => {
     if (!token) return;

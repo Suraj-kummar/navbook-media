@@ -45,7 +45,8 @@ export default function FileGrid({
   const [files, setFiles] = useState<NavFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { token } = useAuth();
+  const { session } = useAuth();
+  const token = session?.access_token;
 
   useEffect(() => {
     const fetchFiles = async () => {

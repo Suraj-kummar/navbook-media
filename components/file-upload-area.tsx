@@ -17,7 +17,8 @@ export default function FileUploadArea({ onFileUploaded }: FileUploadAreaProps) 
   const [tags, setTags] = useState('');
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { token } = useAuth();
+  const { session } = useAuth();
+  const token = session?.access_token;
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();

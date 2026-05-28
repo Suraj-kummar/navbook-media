@@ -9,7 +9,8 @@ interface BulkActionBarProps {
 }
 
 export default function BulkActionBar({ selectedIds, onClearSelection, onBulkDeleted }: BulkActionBarProps) {
-  const { token } = useAuth();
+  const { session } = useAuth();
+  const token = session?.access_token;
   const count = selectedIds.length;
 
   if (count === 0) return null;

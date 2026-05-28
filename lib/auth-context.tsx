@@ -1,124 +1,86 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createClient } from '@/lib/supabase/client';
+import type { User, Session } from '@supabase/supabase-js';
 
 interface AuthContextType {
   isAuthenticated: boolean;
   loading: boolean;
-  login: (username: string, password: string) => Promise<void>;
+  user: User | null;
+  session: Session | null;
+  token: string | null;
   logout: () => Promise<void>;
   error: string | null;
-  token: string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-// Token management helpers
-function setAuthToken(token: string) {
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('auth_token', token);
-  }
-}
-
-function getAuthToken(): string | null {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('auth_token');
-  }
-  return null;
-}
-
-function clearAuthToken() {
-  if (typeof window !== 'undefined') {
-    localStorage.removeItem('auth_token');
-  }
-}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [token, setToken] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  
+  const supabase = createClient();
 
-  // Check if user is already authenticated on mount
   useEffect(() => {
-    const checkAuth = async () => {
+    const initAuth = async () => {
       try {
-        const storedToken = getAuthToken();
-        if (storedToken) {
-          const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-          const response = await fetch(`${apiUrl}/auth/me?token=${encodeURIComponent(storedToken)}`);
-          if (response.ok) {
-            setIsAuthenticated(true);
-            setToken(storedToken);
-          } else {
-            clearAuthToken();
-            setIsAuthenticated(false);
-            setToken(null);
-          }
-        } else {
-          setIsAuthenticated(false);
-          setToken(null);
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) throw error;
+        
+        if (session) {
+          setSession(session);
+          setUser(session.user);
+          setIsAuthenticated(true);
         }
       } catch (err) {
-        setIsAuthenticated(false);
-        setToken(null);
+        console.error('Error fetching session:', err);
+        setError(err instanceof Error ? err.message : 'Failed to fetch session');
       } finally {
         setLoading(false);
       }
     };
 
-    checkAuth();
-  }, []);
+    initAuth();
 
-  const login = useCallback(async (username: string, password: string) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-      const response = await fetch(`${apiUrl}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.detail || 'Login failed');
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, newSession) => {
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
+        setIsAuthenticated(!!newSession);
+        setLoading(false);
       }
+    );
 
-      const data = await response.json();
-      const newToken = data.access_token;
-      setAuthToken(newToken);
-      setToken(newToken);
-      setIsAuthenticated(true);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [supabase.auth]);
 
   const logout = useCallback(async () => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-      const currentToken = getAuthToken();
-      if (currentToken) {
-        await fetch(`${apiUrl}/auth/logout?token=${encodeURIComponent(currentToken)}`, {
-          method: 'POST',
-        });
-      }
+      setLoading(true);
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
+      setIsAuthenticated(false);
+      setUser(null);
+      setSession(null);
     } catch (err) {
       console.error('Logout error:', err);
+      setError(err instanceof Error ? err.message : 'Logout failed');
     } finally {
-      clearAuthToken();
-      setIsAuthenticated(false);
-      setToken(null);
+      setLoading(false);
     }
-  }, []);
+  }, [supabase.auth]);
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, loading, login, logout, error, token }}>
+    <AuthContext.Provider value={{ isAuthenticated, loading, user, session, token: session?.access_token ?? null, logout, error }}>
       {children}
     </AuthContext.Provider>
   );

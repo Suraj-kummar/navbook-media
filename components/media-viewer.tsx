@@ -28,7 +28,8 @@ export default function MediaViewer({
 }: MediaViewerProps) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const { token } = useAuth();
+  const { session } = useAuth();
+  const token = session?.access_token;
 
   useEffect(() => {
     if (isOpen && token) {

@@ -47,7 +47,8 @@ export default function FileCard({
   const [isFavorite, setIsFavorite] = useState(file.is_favorite ?? false);
   const [shareToken, setShareToken] = useState<string | null>(file.share_token ?? null);
   const [shareCopied, setShareCopied] = useState(false);
-  const { token } = useAuth();
+  const { session } = useAuth();
+  const token = session?.access_token;
 
   const isImage = file.file_type.startsWith('image/');
   const isVideo = file.file_type.startsWith('video/');

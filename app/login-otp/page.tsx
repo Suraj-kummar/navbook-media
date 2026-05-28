@@ -18,7 +18,7 @@ export default function LoginOTPPage() {
   const [localError, setLocalError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const router = useRouter();
-  const { login, error } = useAuth();
+  const { error } = useAuth();
 
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 

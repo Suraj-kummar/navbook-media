@@ -21,6 +21,21 @@ BLOB_READ_WRITE_TOKEN = os.getenv("BLOB_READ_WRITE_TOKEN")
 
 app = FastAPI(title="Navbook API")
 
+@app.on_event("startup")
+def startup_event():
+    # Attempt to auto-add supabase_id column to users table if it doesn't exist
+    if DATABASE_URL:
+        try:
+            conn = get_db_connection()
+            cur = conn.cursor()
+            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS supabase_id VARCHAR(255) UNIQUE;")
+            conn.commit()
+            cur.close()
+            conn.close()
+            print("Database schema auto-verified/migrated: added supabase_id to users table.")
+        except Exception as e:
+            print(f"Warning: database schema migration check failed: {e}")
+
 # CORS Configuration
 app.add_middleware(
     CORSMiddleware,
@@ -94,8 +109,42 @@ def create_access_token(user_id: int, expires_delta: Optional[timedelta] = None)
 
 def verify_token(token: str) -> int:
     try:
-        payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
-        user_id: int = payload.get("user_id")
+        # Decode token. Handle standard Supabase audience if present, fallback if not
+        try:
+            payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"], audience="authenticated")
+        except jwt.InvalidTokenError:
+            payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+        
+        # Check if it is a Supabase JWT (contains 'sub' UUID and is not a legacy token)
+        if "sub" in payload and "user_id" not in payload:
+            supabase_id = payload["sub"]
+            email = payload.get("email", "supabase_user")
+            
+            # Lookup or create this user in the local database
+            conn = get_db_connection()
+            cur = conn.cursor(cursor_factory=RealDictCursor)
+            try:
+                cur.execute("SELECT id FROM users WHERE supabase_id = %s", (supabase_id,))
+                user = cur.fetchone()
+                if user:
+                    return user["id"]
+                else:
+                    # Create a new local user record mapped to the Supabase ID
+                    cur.execute(
+                        "INSERT INTO users (username, password_hash, supabase_id) VALUES (%s, %s, %s) RETURNING id",
+                        (email, "", supabase_id)
+                    )
+                    new_user = cur.fetchone()
+                    conn.commit()
+                    return new_user["id"]
+            except Exception as e:
+                conn.rollback()
+                raise HTTPException(status_code=500, detail=f"Database synchronization error: {str(e)}")
+            finally:
+                cur.close()
+                conn.close()
+
+        user_id = payload.get("user_id")
         if user_id is None:
             raise HTTPException(status_code=401, detail="Invalid token")
         return user_id
