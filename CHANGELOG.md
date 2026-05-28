@@ -31,3 +31,4 @@
 [31] [2026-05-28 21:41:20] feat: drag and drop reorder support
 [32] [2026-05-28 21:41:20] fix: correct MIME type detection
 [33] [2026-05-28 21:41:20] style: update icon sizes in sidebar
+[34] [2026-05-28 21:41:20] refactor: consolidate API calls
