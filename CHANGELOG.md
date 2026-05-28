@@ -69,3 +69,4 @@
 [69] [2026-05-28 21:41:26] style: responsive grid breakpoints
 [70] [2026-05-28 21:41:26] refactor: move API types to types.ts
 [71] [2026-05-28 21:41:27] feat: multi-select drag highlight
+[72] [2026-05-28 21:41:27] fix: file card context menu position
