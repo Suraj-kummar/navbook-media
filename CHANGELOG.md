@@ -20,3 +20,4 @@
 [20] [2026-05-28 21:41:18] fix: resolve supabase session timeout
 [21] [2026-05-28 21:41:18] style: smooth card hover animations
 [22] [2026-05-28 21:41:18] refactor: decouple upload from grid
+[23] [2026-05-28 21:41:18] feat: add copy link to file card
