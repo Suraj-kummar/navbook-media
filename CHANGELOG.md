@@ -40,3 +40,4 @@
 [40] [2026-05-28 21:41:21] fix: thumbnail generation for videos
 [41] [2026-05-28 21:41:21] style: better error message styling
 [42] [2026-05-28 21:41:22] refactor: type safety improvements
+[43] [2026-05-28 21:41:22] feat: file metadata side panel
