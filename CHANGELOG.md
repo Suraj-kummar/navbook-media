@@ -48,3 +48,4 @@
 [48] [2026-05-28 21:41:23] fix: prevent double upload on click
 [49] [2026-05-28 21:41:23] style: animated skeleton loaders
 [50] [2026-05-28 21:41:23] refactor: extract media card props
+[51] [2026-05-28 21:41:23] feat: recent uploads section
