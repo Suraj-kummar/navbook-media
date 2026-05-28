@@ -25,3 +25,4 @@
 [25] [2026-05-28 21:41:19] style: consistent spacing in header
 [26] [2026-05-28 21:41:19] refactor: use custom hook for auth
 [27] [2026-05-28 21:41:19] feat: show upload progress bar
+[28] [2026-05-28 21:41:19] fix: file preview for large images
