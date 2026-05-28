@@ -27,3 +27,4 @@
 [27] [2026-05-28 21:41:19] feat: show upload progress bar
 [28] [2026-05-28 21:41:19] fix: file preview for large images
 [29] [2026-05-28 21:41:19] style: add gradient to hero section
+[30] [2026-05-28 21:41:19] refactor: split auth context logic
