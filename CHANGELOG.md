@@ -23,3 +23,4 @@
 [23] [2026-05-28 21:41:18] feat: add copy link to file card
 [24] [2026-05-28 21:41:18] fix: handle network error in upload
 [25] [2026-05-28 21:41:19] style: consistent spacing in header
+[26] [2026-05-28 21:41:19] refactor: use custom hook for auth
