@@ -34,3 +34,4 @@
 [34] [2026-05-28 21:41:20] refactor: consolidate API calls
 [35] [2026-05-28 21:41:20] feat: add search filter to media grid
 [36] [2026-05-28 21:41:21] fix: OTP resend cooldown timer
+[37] [2026-05-28 21:41:21] style: improve mobile nav layout
