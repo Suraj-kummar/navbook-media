@@ -60,3 +60,4 @@
 [60] [2026-05-28 21:41:25] fix: broken image fallback
 [61] [2026-05-28 21:41:25] style: smooth page transitions
 [62] [2026-05-28 21:41:25] refactor: improve error boundaries
+[63] [2026-05-28 21:41:25] feat: share link expiry options
