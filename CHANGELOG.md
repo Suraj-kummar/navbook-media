@@ -67,3 +67,4 @@
 [67] [2026-05-28 21:41:26] feat: activity log for uploads
 [68] [2026-05-28 21:41:26] fix: correct date formatting
 [69] [2026-05-28 21:41:26] style: responsive grid breakpoints
+[70] [2026-05-28 21:41:26] refactor: move API types to types.ts
