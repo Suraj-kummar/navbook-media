@@ -72,3 +72,4 @@
 [72] [2026-05-28 21:41:27] fix: file card context menu position
 [73] [2026-05-28 21:41:27] style: subtle shadow on modals
 [74] [2026-05-28 21:41:27] refactor: remove dead code paths
+[75] [2026-05-28 21:41:27] feat: file type icon mapping
