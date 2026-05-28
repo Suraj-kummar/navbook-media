@@ -74,3 +74,4 @@
 [74] [2026-05-28 21:41:27] refactor: remove dead code paths
 [75] [2026-05-28 21:41:27] feat: file type icon mapping
 [76] [2026-05-28 21:41:27] fix: patch CORS in backend
+[77] [2026-05-28 21:41:28] style: active nav link indicator
