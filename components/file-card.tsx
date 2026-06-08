@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import MediaViewer from '@/components/media-viewer';
+import EditFileDialog from '@/components/edit-file-dialog';
 
 interface FileCardProps {
   file: {
@@ -46,6 +47,8 @@ export default function FileCard({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isFavorite, setIsFavorite] = useState(file.is_favorite ?? false);
   const [shareToken, setShareToken] = useState<string | null>(file.share_token ?? null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [localFile, setLocalFile] = useState(file);
   const [shareCopied, setShareCopied] = useState(false);
   const { session } = useAuth();
   const token = session?.access_token;
@@ -56,7 +59,8 @@ export default function FileCard({
   useEffect(() => {
     setIsFavorite(file.is_favorite ?? false);
     setShareToken(file.share_token ?? null);
-  }, [file.is_favorite, file.share_token]);
+    setLocalFile(file);
+  }, [file.is_favorite, file.share_token, file]);
 
   // Load image preview
   useEffect(() => {
@@ -274,11 +278,18 @@ export default function FileCard({
           <div className="file-card-actions">
             <button className="fc-btn fc-btn-view" onClick={(e) => { e.stopPropagation(); setShowViewer(true); }}>View</button>
             <button
+              className="fc-btn fc-btn-edit"
+              onClick={(e) => { e.stopPropagation(); setShowEditDialog(true); }}
+              title="Edit metadata"
+            >
+              ✏️
+            </button>
+            <button
               className={`fc-btn fc-btn-share ${shareToken ? 'fc-btn-share--active' : ''}`}
               onClick={handleShare}
               title={shareToken ? 'Copy share link' : 'Create share link'}
             >
-              {shareCopied ? '✓ Copied!' : shareToken ? '🔗 Share' : '🔗 Share'}
+              {shareCopied ? '✓ Copied!' : '🔗'}
             </button>
             <button className="fc-btn fc-btn-delete" onClick={(e) => { e.stopPropagation(); handleDelete(); }} disabled={isDeleting}>
               {isDeleting ? '...' : '🗑️'}
@@ -290,13 +301,24 @@ export default function FileCard({
       {/* Media Viewer */}
       {!isTrashView && (
         <MediaViewer
-          file={{ ...file, file_key: file.file_key ?? '' }}
+          file={{ ...localFile, file_key: localFile.file_key ?? '' }}
           isOpen={showViewer}
           onClose={() => setShowViewer(false)}
           onDownload={handleDownload}
           onDelete={handleDelete}
         />
       )}
+
+      {/* Edit Dialog */}
+      <EditFileDialog
+        file={localFile}
+        isOpen={showEditDialog}
+        onClose={() => setShowEditDialog(false)}
+        onSaved={() => {
+          setShowEditDialog(false);
+          onUpdate?.();
+        }}
+      />
     </div>
   );
 }
