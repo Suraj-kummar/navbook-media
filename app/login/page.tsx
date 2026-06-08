@@ -237,6 +237,15 @@ export default function LoginPage() {
             <button type="submit" className="login-btn" disabled={isLoading}>
               {isLoading ? 'Processing...' : (isRegisterMode ? 'Create Account' : 'Sign In')}
             </button>
+            {!isRegisterMode && (
+              <div style={{ textAlign: 'center', marginTop: '0.25rem' }}>
+                <a href="/forgot-password" style={{ fontSize: '0.78rem', color: 'rgba(165,180,252,0.55)', textDecoration: 'none', transition: 'color 0.2s' }}
+                  onMouseOver={e => (e.currentTarget.style.color = '#a5b4fc')}
+                  onMouseOut={e => (e.currentTarget.style.color = 'rgba(165,180,252,0.55)')}>
+                  Forgot password?
+                </a>
+              </div>
+            )}
           </form>
         ) : (
           <form onSubmit={isOtpSent ? handleVerifyOtp : handleSendOtp} className="login-form">
