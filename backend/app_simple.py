@@ -2,7 +2,8 @@ import os
 import uuid
 import io
 import zipfile
-from fastapi import FastAPI, HTTPException, Depends, UploadFile, File, Form, Header
+import time
+from fastapi import FastAPI, HTTPException, Depends, UploadFile, File, Form, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel
@@ -11,6 +12,12 @@ import jwt
 import bcrypt
 from dotenv import load_dotenv
 from typing import Optional, List
+
+try:
+    import requests as http_requests
+    HTTP_REQUESTS_AVAILABLE = True
+except ImportError:
+    HTTP_REQUESTS_AVAILABLE = False
 
 try:
     from vercel_blob import put, delete as blob_delete
@@ -23,6 +30,9 @@ load_dotenv()
 # Environment variables
 JWT_SECRET = os.getenv("JWT_SECRET", "your-secret-key-change-in-production")
 BLOB_READ_WRITE_TOKEN = os.getenv("BLOB_READ_WRITE_TOKEN")
+RESEND_API_KEY = os.getenv("RESEND_API_KEY")
+FROM_EMAIL = os.getenv("FROM_EMAIL", "noreply@navbook.app")
+APP_URL = os.getenv("APP_URL", "http://localhost:3000")
 
 app = FastAPI(title="Navbook API", version="2.0.0")
 
@@ -38,6 +48,8 @@ app.add_middleware(
 # ─── In-memory storage ────────────────────────────────────────────────────────
 users_db = {}   # {username: {id, password_hash, created_at}}
 files_db = {}   # {file_id: {...metadata, is_favorite, is_deleted, share_token}}
+reset_tokens = {}  # {token: {username, expires_at}}
+rate_limit_store: dict = {}  # {ip: [timestamps]}
 user_id_counter = 1
 file_id_counter = 1
 
@@ -65,6 +77,57 @@ class FileMetadata(BaseModel):
 
 class BulkDeleteRequest(BaseModel):
     file_ids: List[int]
+
+class UpdateFileRequest(BaseModel):
+    filename: Optional[str] = None
+    description: Optional[str] = None
+    tags: Optional[str] = None
+
+class PasswordResetRequest(BaseModel):
+    username: str
+
+class PasswordResetConfirm(BaseModel):
+    token: str
+    new_password: str
+
+# ─── Email helper ─────────────────────────────────────────────────────────────
+def send_email(to_email: str, subject: str, html_body: str):
+    """Send email via Resend API if key is set, otherwise print to console."""
+    if RESEND_API_KEY and HTTP_REQUESTS_AVAILABLE:
+        try:
+            resp = http_requests.post(
+                "https://api.resend.com/emails",
+                json={"from": FROM_EMAIL, "to": [to_email], "subject": subject, "html": html_body},
+                headers={"Authorization": f"Bearer {RESEND_API_KEY}"},
+                timeout=10,
+            )
+            if resp.status_code in (200, 201):
+                print(f"✅ Email sent to {to_email} via Resend")
+                return
+            else:
+                print(f"⚠️ Resend returned {resp.status_code}: {resp.text}")
+        except Exception as e:
+            print(f"⚠️ Resend error: {e}")
+    # Fallback: print to console (dev mode)
+    print(f"\n{'='*50}")
+    print(f"📧 EMAIL TO: {to_email}")
+    print(f"📌 SUBJECT: {subject}")
+    print(f"{'='*50}\n")
+
+# ─── Rate limiter ──────────────────────────────────────────────────────────────
+def check_rate_limit(ip: str, max_calls: int = 5, window_seconds: int = 60):
+    """Simple in-memory rate limiter. Raises 429 if limit exceeded."""
+    now = time.time()
+    window_start = now - window_seconds
+    calls = rate_limit_store.get(ip, [])
+    calls = [t for t in calls if t > window_start]  # purge old entries
+    if len(calls) >= max_calls:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Too many requests. Please wait {window_seconds}s before trying again.",
+        )
+    calls.append(now)
+    rate_limit_store[ip] = calls
 
 # ─── Auth helpers ─────────────────────────────────────────────────────────────
 def hash_password(password: str) -> str:
@@ -156,7 +219,8 @@ def read_root():
 
 # ─── Auth routes ──────────────────────────────────────────────────────────────
 @app.post("/auth/register")
-async def register(request: LoginRequest):
+async def register(request: LoginRequest, http_request: Request):
+    check_rate_limit(http_request.client.host if http_request.client else "unknown")
     global user_id_counter
     if request.username in users_db:
         raise HTTPException(status_code=400, detail="Username already exists")
@@ -172,7 +236,8 @@ async def register(request: LoginRequest):
     return AuthResponse(access_token=token, token_type="bearer", user_id=user_id)
 
 @app.post("/auth/login")
-async def login(request: LoginRequest):
+async def login(request: LoginRequest, http_request: Request):
+    check_rate_limit(http_request.client.host if http_request.client else "unknown")
     user = users_db.get(request.username)
     if not user or not verify_password(request.password, user["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid credentials")
@@ -449,6 +514,82 @@ async def bulk_download(request: BulkDeleteRequest, user_id: int = Depends(get_c
         media_type="application/zip",
         headers={"Content-Disposition": 'attachment; filename="navbook-files.zip"'}
     )
+
+# ─── Edit file metadata ───────────────────────────────────────────────────────
+@app.put("/files/{file_id}")
+async def update_file_metadata(
+    file_id: int,
+    body: UpdateFileRequest,
+    user_id: int = Depends(get_current_user)
+):
+    file_data = get_user_file(file_id, user_id)
+    if body.filename is not None and body.filename.strip():
+        file_data["original_filename"] = body.filename.strip()
+    if body.description is not None:
+        file_data["description"] = body.description or None
+    if body.tags is not None:
+        file_data["tags"] = body.tags or None
+    return {
+        "id": file_data["id"],
+        "original_filename": file_data["original_filename"],
+        "description": file_data.get("description"),
+        "tags": file_data.get("tags"),
+    }
+
+# ─── Password reset (for non-Supabase / username-based users) ─────────────────
+@app.post("/auth/request-reset")
+async def request_password_reset(body: PasswordResetRequest, http_request: Request):
+    check_rate_limit(http_request.client.host if http_request.client else "unknown", max_calls=3, window_seconds=300)
+    user = users_db.get(body.username)
+    if not user:
+        # Don't reveal whether user exists (security best practice)
+        return {"message": "If that account exists, a reset link has been sent."}
+    token = str(uuid.uuid4())
+    reset_tokens[token] = {
+        "username": body.username,
+        "expires_at": datetime.utcnow() + timedelta(hours=1),
+    }
+    reset_link = f"{APP_URL}/reset-password?token={token}"
+    send_email(
+        to_email=body.username,  # username assumed to be email in Supabase flow
+        subject="Reset your Navbook password",
+        html_body=f"""
+        <div style="font-family:sans-serif;max-width:480px;margin:auto">
+          <h2 style="color:#6366f1">Reset your Navbook password</h2>
+          <p>Click the link below to reset your password. This link expires in 1 hour.</p>
+          <a href="{reset_link}" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border-radius:8px;text-decoration:none;font-weight:600">
+            Reset Password
+          </a>
+          <p style="color:#888;font-size:12px;margin-top:24px">
+            If you didn't request this, you can safely ignore this email.
+          </p>
+        </div>
+        """,
+    )
+    # In dev mode also return the token so you can test without real email
+    response = {"message": "If that account exists, a reset link has been sent."}
+    if not RESEND_API_KEY:
+        response["dev_token"] = token  # only visible in dev (no real email configured)
+    return response
+
+@app.post("/auth/reset-password")
+async def reset_password(body: PasswordResetConfirm, http_request: Request):
+    check_rate_limit(http_request.client.host if http_request.client else "unknown", max_calls=5, window_seconds=300)
+    token_data = reset_tokens.get(body.token)
+    if not token_data:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset token")
+    if datetime.utcnow() > token_data["expires_at"]:
+        del reset_tokens[body.token]
+        raise HTTPException(status_code=400, detail="Reset token has expired")
+    if len(body.new_password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+    username = token_data["username"]
+    user = users_db.get(username)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user["password_hash"] = hash_password(body.new_password)
+    del reset_tokens[body.token]
+    return {"message": "Password updated successfully"}
 
 if __name__ == "__main__":
     import uvicorn
