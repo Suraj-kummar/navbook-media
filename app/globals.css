@@ -1,6 +1,5 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
 @custom-variant dark (&:is(.dark *));
 
@@ -699,3 +698,75 @@
   border-color: #ef444450;
   color: #f87171;
 }
+
+/* ── Edit button on file card ─────────────────────── */
+.fc-btn-edit:hover { background: rgba(245,158,11,0.12); color: #fcd34d; border-color: rgba(245,158,11,0.3); }
+
+/* ── Edit File Dialog ─────────────────────────────── */
+.edit-dialog-overlay {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,0.65);
+  backdrop-filter: blur(8px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 1rem;
+  animation: fadeInOverlay 0.18s ease;
+}
+@keyframes fadeInOverlay {
+  from { opacity: 0; } to { opacity: 1; }
+}
+.edit-dialog-card {
+  width: 100%; max-width: 460px;
+  background: rgba(16,16,28,0.98);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 1.25rem;
+  padding: 1.75rem;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.07);
+  animation: cardIn 0.22s cubic-bezier(.4,0,.2,1);
+}
+.edit-dialog-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+.edit-dialog-title {
+  font-size: 1.1rem; font-weight: 800; color: #fff; margin: 0;
+  background: linear-gradient(135deg, #a5b4fc, #c084fc);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.edit-dialog-close {
+  width: 30px; height: 30px; border-radius: 8px;
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.4); cursor: pointer; font-size: 0.85rem;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s; font-family: inherit;
+}
+.edit-dialog-close:hover { background: rgba(239,68,68,0.15); color: #f87171; border-color: rgba(239,68,68,0.3); }
+.edit-dialog-form { display: flex; flex-direction: column; gap: 1rem; }
+.edit-dialog-field { display: flex; flex-direction: column; gap: 0.35rem; }
+.edit-dialog-field label { font-size: 0.78rem; font-weight: 600; color: rgba(255,255,255,0.55); letter-spacing: 0.04em; text-transform: uppercase; }
+.edit-dialog-input {
+  width: 100%; padding: 0.7rem 0.9rem;
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 0.625rem; color: #fff; font-size: 0.875rem; outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s; font-family: inherit;
+  resize: none;
+}
+.edit-dialog-input::placeholder { color: rgba(255,255,255,0.2); }
+.edit-dialog-input:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.2); }
+.edit-dialog-input:disabled { opacity: 0.5; cursor: not-allowed; }
+.edit-dialog-textarea { resize: vertical; min-height: 80px; }
+.edit-dialog-error {
+  padding: 0.65rem 0.9rem; background: rgba(239,68,68,0.12);
+  border: 1px solid rgba(239,68,68,0.3); border-radius: 0.5rem;
+  color: #fca5a5; font-size: 0.8rem;
+}
+.edit-dialog-actions { display: flex; gap: 0.6rem; justify-content: flex-end; margin-top: 0.5rem; }
+.edit-dialog-btn {
+  padding: 0.6rem 1.2rem; border-radius: 0.625rem; font-size: 0.85rem; font-weight: 600;
+  cursor: pointer; transition: all 0.18s; border: none; font-family: inherit;
+}
+.edit-dialog-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.edit-dialog-btn-cancel { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.55); border: 1px solid rgba(255,255,255,0.1); }
+.edit-dialog-btn-cancel:hover:not(:disabled) { background: rgba(255,255,255,0.1); color: #fff; }
+.edit-dialog-btn-save { background: linear-gradient(135deg,#6366f1,#8b5cf6); color: #fff; box-shadow: 0 4px 16px rgba(99,102,241,0.35); }
+.edit-dialog-btn-save:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(99,102,241,0.5); }
