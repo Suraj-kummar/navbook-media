@@ -4,7 +4,7 @@
 
 ![Navbook Logo](public/placeholder-logo.svg) 
 
-**A secure, self-hosted private media vault for storing and managing your personal files** 
+**A secure, self-hosted private media vault for storing and managing your personal files**  
 
 [![Next.js](https://img.shields.io/badge/Next.js-16.1.6-black?style=flat-square&logo=next.js)](https://nextjs.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-009688?style=flat-square&logo=fastapi)](https://fastapi.tiangolo.com/)
