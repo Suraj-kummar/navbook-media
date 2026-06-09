@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Navbook Logo](public/placeholder-logo.svg)
+![Navbook Logo](public/placeholder-logo.svg) 
 
 **A secure, self-hosted private media vault for storing and managing your personal files**
 
